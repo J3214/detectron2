@@ -43,6 +43,7 @@ from detectron2.utils.env import seed_all_rng
 from detectron2.utils.events import CommonMetricPrinter, JSONWriter, TensorboardXWriter
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import setup_logger
+from detectron2.config import get_cfg
 
 from . import hooks
 from .train_loop import AMPTrainer, SimpleTrainer, TrainerBase
@@ -238,6 +239,7 @@ def default_setup(cfg, args):
         else:
             LazyConfig.save(cfg, path)
         logger.info("Full config saved to {}".format(path))
+        cfg.MODEL.DEVICE= "cpu"
 
     # make sure each worker has a different, yet deterministic seed if specified
     seed = _try_get_key(cfg, "SEED", "train.seed", default=-1)
@@ -312,6 +314,7 @@ class DefaultPredictor:
     def __init__(self, cfg):
         self.cfg = cfg.clone()  # cfg can be modified by model
         self.model = build_model(self.cfg)
+        self.cfg.MODEL.DEVICE = "cpu"
         self.model.eval()
         if len(cfg.DATASETS.TEST):
             self.metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0])
@@ -405,6 +408,7 @@ class DefaultTrainer(TrainerBase):
         if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
             setup_logger()
         cfg = DefaultTrainer.auto_scale_workers(cfg, comm.get_world_size())
+        cfg.MODEL.DEVICE="cpu"
 
         # Assume these objects must be constructed in this order.
         model = self.build_model(cfg)
